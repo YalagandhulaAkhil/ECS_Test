@@ -1,21 +1,35 @@
-provider "aws" {
-  region = "us-east-1"
-}
-
+# VPC
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "main-vpc"
+  }
 }
 
+# Subnet
 resource "aws_subnet" "public" {
-  vpc_id            = aws_vpc.main.id
-  cidr_block        = "10.0.1.0/24"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
+
+  tags = {
+    Name = "public-subnet"
+  }
 }
 
+# Internet Gateway
 resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "main-gw"
+  }
 }
 
+# Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -23,16 +37,22 @@ resource "aws_route_table" "public" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.gw.id
   }
+
+  tags = {
+    Name = "public-rt"
+  }
 }
 
+# Associate Route Table with Subnet
 resource "aws_route_table_association" "a" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
 
+# Security Group
 resource "aws_security_group" "ecs_sg" {
-  name        = "ecs_sg"
-  vpc_id      = aws_vpc.main.id
+  name   = "ecs-sg"
+  vpc_id = aws_vpc.main.id
 
   ingress {
     from_port   = 80
@@ -47,12 +67,18 @@ resource "aws_security_group" "ecs_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "ecs-sg"
+  }
 }
 
+# ECS Cluster
 resource "aws_ecs_cluster" "app" {
   name = "my-ecs-cluster"
 }
 
+# IAM Role for ECS Task Execution
 resource "aws_iam_role" "ecs_task_execution" {
   name = "ecsTaskExecutionRole"
 
@@ -73,12 +99,17 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# Load Balancer
 resource "aws_lb" "ecs_lb" {
   name               = "ecs-lb"
   internal           = false
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public.id]
   security_groups    = [aws_security_group.ecs_sg.id]
+  subnets            = [aws_subnet.public.id]
+
+  tags = {
+    Name = "ecs-lb"
+  }
 }
 
 resource "aws_lb_target_group" "ecs_tg" {
@@ -86,6 +117,7 @@ resource "aws_lb_target_group" "ecs_tg" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+  target_type = "ip"
 }
 
 resource "aws_lb_listener" "ecs_listener" {
@@ -99,6 +131,7 @@ resource "aws_lb_listener" "ecs_listener" {
   }
 }
 
+# ECS Task Definition
 resource "aws_ecs_task_definition" "app" {
   family                   = "app-task"
   network_mode             = "awsvpc"
@@ -110,15 +143,18 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = "app-container"
-      image     = "nginx"
-      portMappings = [{
-        containerPort = 80
-        hostPort      = 80
-      }]
+      image     = var.container_image
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+        }
+      ]
     }
   ])
 }
 
+# ECS Service
 resource "aws_ecs_service" "app_service" {
   name            = "app-service"
   cluster         = aws_ecs_cluster.app.id
