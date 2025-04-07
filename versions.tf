@@ -1,4 +1,6 @@
 terraform {
+  required_version = ">= 1.4.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -7,10 +9,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "terraform-state-files-159"
-    key            = "ec2-project/terraform.tfstate"
+    bucket         = "your-terraform-state-bucket"
+    key            = "ecs/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "terraform-locks"
-    encrypt        = true
+    use_lockfile   = true  # replaces deprecated dynamodb_table
   }
 }
