@@ -5,7 +5,7 @@ variable "aws_region" {
 }
 
 variable "container_image" {
-  description = "Docker image for ECS (e.g., nginx or your app)"
+  description = "Docker image to deploy in ECS (e.g., nginx, your ECR image)"
   type        = string
   default     = "nginx"
 }
