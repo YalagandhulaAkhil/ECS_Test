@@ -41,12 +41,13 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan -detailed-exitcode
-        continue-on-error: true
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-        continue-on-error: true
 
       - name: Output Terraform Plan
         if: failure()
-        run: cat tfplan
+        run: |
+          echo "Terraform plan failed, outputting plan file."
+          cat tfplan || echo "tfplan file not found."
+      
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        if: success()
