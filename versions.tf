@@ -1,10 +1,10 @@
 terraform {
-  required_version = ">= 1.4.0"
+  required_version = ">= 1.0.11"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 4.0"
     }
   }
 
@@ -12,6 +12,7 @@ terraform {
     bucket         = "terraform-state-files-159"
     key            = "ecs/terraform.tfstate"
     region         = "us-east-1"
-    use_lockfile   = true  # replaces deprecated dynamodb_table
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
   }
 }
