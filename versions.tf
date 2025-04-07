@@ -9,8 +9,8 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "your-terraform-state-bucket"
-    key            = "ec2-project/terraform.tfstate"
+    bucket         = "terraform-state-files-159"
+    key            = "ecs/terraform.tfstate"
     region         = "us-east-1"
     use_lockfile   = true  # replaces deprecated dynamodb_table
   }
